@@ -103,6 +103,7 @@ ret
       } else {
         this.decorations = this.editor.deltaDecorations([this.decorations[0]], []);
       }
+      this.editor.revealLineInCenter(this.lineNum);
       
     },
     action(name) {
@@ -118,6 +119,7 @@ ret
     async compile() {
       console.log("compile")
       this.lc3simoutput = "";
+      this.editor.revealLineInCenter(1);
       this.lc3asModule = await createLC3asModule({
         postRun: [function () {
             console.log(`Loaded lc3asModule Module OK`);
