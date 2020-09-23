@@ -1,10 +1,11 @@
 
-var createLC3asModule = (function () {
+var createLC3asModule = (function() {
   var _scriptDir = typeof document !== 'undefined' && document.currentScript ? document.currentScript.src : undefined;
   if (typeof __filename !== 'undefined') _scriptDir = _scriptDir || __filename;
   return (
 function(createLC3asModule) {
   createLC3asModule = createLC3asModule || {};
+
 
 
 // The Module object: Our interface to the outside world. We import
@@ -1310,10 +1311,10 @@ function updateGlobalBufferAndViews(buf) {
 }
 
 var STATIC_BASE = 1024,
-    STACK_BASE = 5270896,
+    STACK_BASE = 5270880,
     STACKTOP = STACK_BASE,
-    STACK_MAX = 28016,
-    DYNAMIC_BASE = 5270896;
+    STACK_MAX = 28000,
+    DYNAMIC_BASE = 5270880;
 
 assert(STACK_BASE % 16 === 0, 'stack must start aligned');
 assert(DYNAMIC_BASE % 16 === 0, 'heap must start aligned');
@@ -1828,7 +1829,7 @@ var ASM_CONSTS = {
 
 
 
-// STATICTOP = STATIC_BASE + 26992;
+// STATICTOP = STATIC_BASE + 26976;
 /* global initializers */  __ATINIT__.push({ func: function() { ___wasm_call_ctors() } });
 
 

@@ -7,6 +7,11 @@
       <button @click="action('continue')">Contine</button>
       <button @click="action('finish')">Finish</button>
     </div>
+    <div class="register-container">
+      <div class="register-block" v-for="(reg, index) in regArray">
+        {{regName[index]}} <input :value="num2hex(reg)">
+      </div>
+    </div>
     
     <div class="editor-container">
       <MonacoEditor class="editor" ref="editor" v-model="code" :options="options" language="javascript" />
@@ -39,6 +44,8 @@ export default {
       lineNum: 0,
       decorations: null,
       inputPromiseResolve: null,
+      regArray: [],
+      regName: ["R0", "R1", "R2", "R3", "R4", "R5", "R6", "R7", "PC", "IR", "PSR"],
       options: {
         glyphMargin: true
       },
@@ -79,6 +86,12 @@ ret
       this.lineNum = lineNum;
       this.switchLine();
     }
+    global.setRegisters = (lc3Register) => {
+      console.log(lc3Register)
+      const regArray = new Int32Array(this.lc3simModule.HEAP32.buffer, lc3Register, 11);
+      this.regArray = Array.from(regArray);
+      console.log(this.regArray)
+    }
 
     
   },
@@ -88,6 +101,9 @@ ret
     ]);
   },
   methods: {
+    num2hex(num) {
+      return num.toString(16);
+    },
     switchLine() {
       if (this.lineNum != 0) {
         this.decorations = this.editor.deltaDecorations([this.decorations[0]], [     
@@ -196,6 +212,7 @@ ret
 .output {
   height: 500px;
   overflow: scroll;
+  margin-left: 20px;
 }
 }
 
@@ -206,6 +223,18 @@ ret
 }
 .myContentClass {
 	background: lightblue;
+}
+
+.register-container {
+  margin: 0px 0px 16px 0px;
+  display: flex;
+  flex-direction: row;
+  .register-block {
+    margin: 0px 10px;
+  }
+  input {
+    width: 30px;
+  }
 }
 
 
