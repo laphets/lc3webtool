@@ -1,5 +1,11 @@
 <template>
   <div class="home">
+    <pre>
+      LC3 Webtool Guides:
+      Write your LC3 code in below editor, click "Compile" to run lc3as and lc3sim for your code(two steps in one click).
+      If compile successfully, you should see a lightblue line indicating your current execution position. You can click on line number area to add/remove breakpoints.
+      You can also click Next/Step/Continue/Finish to control lc3sim debug execution flow, which should be quite similar with lc3sim-tk.
+    </pre>
     <div class="control-container">
       <button @click="compile">Compile!</button>
       <button @click="action('next')">Next</button>
@@ -42,9 +48,12 @@ export default {
       lc3simoutput: "",
       nextInput: "",
       lineNum: 0,
-      decorations: null,
+      decorations: [],
+      decorationStr: [],
       inputPromiseResolve: null,
+      debugMap: {},
       regArray: [],
+      breakPoints: {},  // line -> breakpoint
       regName: ["R0", "R1", "R2", "R3", "R4", "R5", "R6", "R7", "PC", "IR", "PSR"],
       options: {
         glyphMargin: true
@@ -92,32 +101,93 @@ ret
       this.regArray = Array.from(regArray);
       console.log(this.regArray)
     }
+    global.setDebugInfo = (lc3Debug) => {
+      this.debugMap = {};
+      const debugArray = new Int32Array(this.lc3simModule.HEAP32.buffer, lc3Debug, 65536);
+      for(let i = 0; i < debugArray.length; i++) {
+        if(debugArray[i] != 0) {
+          this.debugMap[debugArray[i]] = i;
+        }
+      }
+      console.log(this.debugMap)
+    }
 
     
   },
   mounted() {
     this.editor = this.$refs.editor.getEditor();
-    this.decorations = this.editor.deltaDecorations([], [
-    ]);
+    global.editor = this.editor;
+    this.decorations = [];
+    this.editor.onMouseDown((event) => {
+      if(event.target.type != 3 && event.target.type != 2)
+        return;
+      const lineNumber = event.target.position.lineNumber;
+      if(this.breakPoints[lineNumber]) {
+        // remove breakpoint
+        // console.log("remove", lineNumber);
+        this.breakPoints[lineNumber] = false;
+        this.decorations = this.decorations.filter((item) => {
+          return item.type == "breakpoint" && item.lineNumber != lineNumber;
+        });
+        this.inputPromiseResolve(`break clear #${this.debugMap[lineNumber]}`)
+      } else {
+        // add breakpoint
+        if(this.debugMap[lineNumber] == undefined)
+          return;
+        this.breakPoints[lineNumber] = true;
+        this.decorations.push({
+          lineNumber,
+          range: new monaco.Range(lineNumber,1,lineNumber,1),
+          type: "breakpoint",
+          options: {
+              isWholeLine: true,
+              glyphMarginClassName: 'breakpoint'
+          }
+        });
+        this.inputPromiseResolve(`break set #${this.debugMap[lineNumber]}`)
+        
+      }
+      this.updateDecoration();
+    })
   },
   methods: {
+    updateDecoration() {
+      // console.log(this.decorations)
+      this.decorationStr = this.editor.deltaDecorations(this.decorationStr, this.decorations);
+    },
+    clearBreakpoint() {
+      this.debugMap = {};
+      this.breakPoints = {};
+      this.decorations = [];
+      this.decorationStr = this.editor.deltaDecorations(this.decorationStr, []);
+    },  
+    addBreakPoint() {
+
+    },
     num2hex(num) {
       return num.toString(16);
     },
     switchLine() {
       if (this.lineNum != 0) {
-        this.decorations = this.editor.deltaDecorations([this.decorations[0]], [     
-            {
-                range: new monaco.Range(this.lineNum,1,this.lineNum,1),
-                options: {
-                    isWholeLine: true,
-                    className: 'myContentClass',
-                    glyphMarginClassName: 'myGlyphMarginClass'
-                }
-            }
-        ]);
+        const lineNumber = this.lineNum;
+        this.decorations = this.decorations.filter((item) => {
+          return item.type != "hit";
+        });
+        this.decorations.push({
+          lineNumber,
+          range: new monaco.Range(lineNumber,1,lineNumber,1),
+          type: "hit",
+          options: {
+              isWholeLine: true,
+              className: 'myContentClass',
+          }
+        })
+        this.updateDecoration();
       } else {
-        this.decorations = this.editor.deltaDecorations([this.decorations[0]], []);
+        this.decorations = this.decorations.filter((item) => {
+          return item.type != "hit";
+        });
+        this.updateDecoration();
       }
       this.editor.revealLineInCenter(this.lineNum);
       
@@ -134,8 +204,10 @@ ret
     },
     async compile() {
       console.log("compile")
+      this.clearBreakpoint();
       this.lc3simoutput = "";
       this.editor.revealLineInCenter(1);
+      let lc3aserror = "";
       this.lc3asModule = await createLC3asModule({
         postRun: [function () {
             console.log(`Loaded lc3asModule Module OK`);
@@ -157,7 +229,7 @@ ret
           // this.$forceUpdate();
           // console.log(this.lc3simoutput);
         },
-        printErr: (text) => { this.lc3simoutput += text + "\n"; this.updateScroll();}
+        printErr: (text) => { lc3aserror += text + "\n"; this.lc3simoutput += text + "\n"; this.updateScroll();}
       });
       this.lc3simModule = await createLC3simModule({
         postRun: [function () {
@@ -172,7 +244,7 @@ ret
       const lc3asResult = wasm.runlc3as(this.lc3asModule, this.code);
       console.log(wasm.uint8arrayToString(lc3asResult.debug))
       if(lc3asResult.ret != 0) {
-        alert(`lc3as error, code = ${lc3asResult.ret}`)
+        alert(`lc3as compile error ${lc3aserror}`)
         return;
       }
 
@@ -211,15 +283,18 @@ ret
 }
 .output {
   height: 500px;
+  width: 80%;
   overflow: scroll;
   margin-left: 20px;
 }
 }
 
-.myGlyphMarginClass {
+.breakpoint {
   background: red;
   border-radius: 50%;
   display: inline-block;
+  width: 14px !important;
+  height: 14px !important;
 }
 .myContentClass {
 	background: lightblue;
