@@ -5,6 +5,7 @@
       Write your LC3 code in below editor, click "Compile" to run lc3as and lc3sim for your code(two steps in one click).
       If compile successfully, you should see a lightblue line indicating your current execution position. You can click on line number area to add/remove breakpoints.
       You can also click Next/Step/Continue/Finish to control lc3sim debug execution flow, which should be quite similar with lc3sim-tk.
+      Just click "Compile" again if you want to rerun your code.
     </pre>
     <div class="control-container">
       <button @click="compile">Compile!</button>
