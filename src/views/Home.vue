@@ -48,9 +48,12 @@
         <v-card-title>
           LC3 Output
         </v-card-title>
-        <v-card-text class="text" id="output">
-          <template v-for="line in lc3simoutput.split('\n')">{{line}}<br></template>
+        <v-card-text>
+        
+        <pre class="text" id="output">{{lc3simoutput}}</pre>
         </v-card-text>
+          <!-- <template v-for="line in lc3simoutput.split('\n')"><br></template> -->
+        
         
       </v-card>
     </div>
@@ -322,6 +325,7 @@ ret
 
     },
     updateScroll() {
+      console.log(this.lc3simoutput)
       this.$nextTick(() => {
         const container = this.$el.querySelector("#output");
         container.scrollTop = container.scrollHeight;
@@ -417,6 +421,7 @@ ret
   
   margin-left: 20px;
   .text {
+    font-family: 'Fira Code','Courier New', Courier, monospace;
     height: calc(100vh - 370px);
     overflow: scroll;
   }
