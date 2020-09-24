@@ -1,14 +1,21 @@
 <template>
-  <div id="app">
+  <div>
     <router-view/>
   </div>
 </template>
 
-<style lang="less">
-#app {
-  font-family: "Source Sans Pro", Calibri, Candara, Arial, sans-serif;
-}
-body {
-  margin: 0px;
-}
-</style>
+<script>
+import HelloWorld from './components/HelloWorld';
+
+export default {
+  name: 'App',
+
+  components: {
+    HelloWorld,
+  },
+
+  data: () => ({
+    //
+  }),
+};
+</script>

@@ -8,5 +8,8 @@ module.exports = {
                 features: []
             })
         ]
-    }
+  },
+  transpileDependencies: [
+    "vuetify"
+  ]
 }

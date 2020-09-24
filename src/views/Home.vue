@@ -1,33 +1,72 @@
 <template>
-  <div class="home">
-    <pre>
+    <v-app>
+    <v-app-bar
+      app
+      color="indigo"
+      dark
+    >
+    <v-app-bar-nav-icon />
+    <v-toolbar-title>LC3 Webtool</v-toolbar-title>
+    </v-app-bar>
+
+    <v-main>
+      <div class="home">
+
+
+    <!-- <pre>
       LC3 Webtool Guides:
       Write your LC3 code in below editor, click "Compile" to run lc3as and lc3sim for your code(two steps in one click).
       If compile successfully, you should see a lightblue line indicating your current execution position. You can click on line number area to add/remove breakpoints.
       You can also click Next/Step/Continue/Finish to control lc3sim debug execution flow, which should be quite similar with lc3sim-tk.
       Just click "Compile" again if you want to rerun your code.
-    </pre>
+    </pre> -->
     <div class="control-container">
-      <button @click="compile">Compile!</button>
-      <button @click="action('next')">Next</button>
-      <button @click="action('step')">Step</button>
-      <button @click="action('continue')">Continue</button>
-      <button @click="action('finish')">Finish</button>
+      <v-btn  color="deep-purple accent-4" :dark="true" @click="compile" :loading="status=='Compile'"><v-icon left light >mdi-view-carousel</v-icon> Compile</v-btn>
+      <v-btn color="red accent-3" dark @click="action('continue')" :disabled="status!='Debug'"><v-icon left dark>mdi-play</v-icon>Continue</v-btn>
+      <v-btn color="blue-grey darken-2" dark @click="action('next')" :disabled="status!='Debug'"><v-icon left dark>mdi-redo</v-icon>Next</v-btn>
+      <v-btn color="blue-grey darken-2" dark @click="action('step')" :disabled="status!='Debug'"><v-icon left dark>mdi-redo</v-icon>Step</v-btn>
+      <v-btn color="deep-orange" dark @click="finish" :disabled="status!='Debug'" ><v-icon left dark>mdi-stop</v-icon>Finish</v-btn>
     </div>
     <div class="register-container">
       <div class="register-block" v-for="(reg, index) in regArray">
-        {{regName[index]}} <input :value="num2hex(reg)">
+        <v-text-field
+            :label="regName[index]"
+            outlined
+            :disabled="status!='Debug'"
+            dense
+            :value="num2hex(reg)"
+          ></v-text-field>
       </div>
     </div>
     
     <div class="editor-container">
-      <MonacoEditor class="editor" ref="editor" v-model="code" :options="options" language="javascript" />
-      <pre class="output" id="output">
-        {{lc3simoutput}}
-      </pre>
+      <MonacoEditor class="editor" ref="editor" v-model="code" :options="options" />
+      <v-card class="output" >
+        <v-card-title>
+          LC3 Output
+        </v-card-title>
+        <v-card-text class="text" id="output">
+          <template v-for="line in lc3simoutput.split('\n')">{{line}}<br></template>
+        </v-card-text>
+        
+      </v-card>
     </div>
     
   </div>
+    </v-main>
+
+    <v-footer
+      :color="statusColor[status]"
+      app
+    >
+      <span class="white--text">
+        {{status}}
+      </span>
+    </v-footer>
+  </v-app>
+
+
+  
 </template>
 
 <script>
@@ -42,6 +81,7 @@ export default {
   },
   data() {
     return {
+      status: "Ready",
       editor: null,
       outputKey: 0,
       lc3asModule: null,
@@ -53,11 +93,16 @@ export default {
       decorationStr: [],
       inputPromiseResolve: null,
       debugMap: {},
-      regArray: [],
+      regArray: [0, 0, 0, 0, 0, 0, 0,0 ,0 ,0, 0],
       breakPoints: {},  // line -> breakpoint
       regName: ["R0", "R1", "R2", "R3", "R4", "R5", "R6", "R7", "PC", "IR", "PSR"],
       options: {
         glyphMargin: true
+      },
+      statusColor: {
+        Ready: "blue darken-1",
+        Debug: "orange darken-3",
+        Compile: "purple darken-2"
       },
       code: `.ORIG x3000
 AND R1,R1,#0
@@ -103,6 +148,7 @@ ret
       console.log(this.regArray)
     }
     global.setDebugInfo = (lc3Debug) => {
+      this.status = "Debug";
       this.debugMap = {};
       const debugArray = new Int32Array(this.lc3simModule.HEAP32.buffer, lc3Debug, 65536);
       for(let i = 0; i < debugArray.length; i++) {
@@ -197,6 +243,12 @@ ret
       console.log(name);
       this.inputPromiseResolve(name)
     },
+    finish() {
+      this.status = "Ready";
+      this.inputPromiseResolve("finish")
+      this.clearBreakpoint();
+
+    },
     updateScroll() {
       this.$nextTick(() => {
         const container = this.$el.querySelector("#output");
@@ -205,6 +257,7 @@ ret
     },
     async compile() {
       console.log("compile")
+      this.status = "Compile";
       this.clearBreakpoint();
       this.lc3simoutput = "";
       this.editor.revealLineInCenter(1);
@@ -248,16 +301,16 @@ ret
         alert(`lc3as compile error ${lc3aserror}`)
         return;
       }
-
+      
       this.$forceUpdate();
 
       this.$nextTick(() => {
         this.$nextTick(() => {
           const lc3simResult = wasm.runlc3sim(this.lc3simModule, lc3asResult);
           console.log(lc3simResult)
+          
         })
       })
-
       
     }
   }
@@ -279,14 +332,18 @@ ret
   display: flex;
   flex-direction: row;
 .editor {
-  width: 600px;
-  height: 600px;
+  width: 800px;
+  height: calc(100vh - 260px);
 }
 .output {
-  height: 500px;
+  
   width: 80%;
-  overflow: scroll;
+  
   margin-left: 20px;
+  .text {
+    height: calc(100vh - 360px);
+    overflow: scroll;
+  }
 }
 }
 
@@ -302,7 +359,7 @@ ret
 }
 
 .register-container {
-  margin: 0px 0px 16px 0px;
+  margin: 0px 0px 0px 0px;
   display: flex;
   flex-direction: row;
   .register-block {
