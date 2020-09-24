@@ -6,7 +6,7 @@
       dark
     >
     <v-app-bar-nav-icon />
-    <v-toolbar-title>LC3 Webtool</v-toolbar-title>
+    <v-toolbar-title>LC3 Webtool @ ECE220</v-toolbar-title>
     </v-app-bar>
 
     <v-main>
@@ -34,6 +34,7 @@
             outlined
             :disabled="status!='Debug'"
             dense
+            style="min-width:100px;"
             :value="num2hex(reg)"
           ></v-text-field>
       </div>
@@ -60,7 +61,7 @@
       app
     >
       <span class="white--text">
-        {{status}}
+        {{status}} {{statusMsg}}
       </span>
     </v-footer>
   </v-app>
@@ -82,6 +83,7 @@ export default {
   data() {
     return {
       status: "Ready",
+      statusMsg: "",
       editor: null,
       outputKey: 0,
       lc3asModule: null,
@@ -102,7 +104,8 @@ export default {
       statusColor: {
         Ready: "blue darken-1",
         Debug: "orange darken-3",
-        Compile: "purple darken-2"
+        Compile: "purple darken-2",
+        Error: "red darken-1"
       },
       code: `.ORIG x3000
 AND R1,R1,#0
@@ -258,6 +261,7 @@ ret
     async compile() {
       console.log("compile")
       this.status = "Compile";
+      this.statusMsg = "";
       this.clearBreakpoint();
       this.lc3simoutput = "";
       this.editor.revealLineInCenter(1);
@@ -298,7 +302,9 @@ ret
       const lc3asResult = wasm.runlc3as(this.lc3asModule, this.code);
       console.log(wasm.uint8arrayToString(lc3asResult.debug))
       if(lc3asResult.ret != 0) {
-        alert(`lc3as compile error ${lc3aserror}`)
+        // alert(`lc3as compile error ${lc3aserror}`)
+        this.status = "Error"
+        this.statusMsg = lc3aserror;
         return;
       }
       
@@ -364,6 +370,8 @@ ret
   flex-direction: row;
   .register-block {
     margin: 0px 10px;
+    display: flex;
+    flex-direction: row;
   }
   input {
     width: 30px;
