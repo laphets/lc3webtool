@@ -4,7 +4,7 @@
       <button @click="compile">Compile!</button>
       <button @click="action('next')">Next</button>
       <button @click="action('step')">Step</button>
-      <button @click="action('continue')">Contine</button>
+      <button @click="action('continue')">Continue</button>
       <button @click="action('finish')">Finish</button>
     </div>
     <div class="register-container">
