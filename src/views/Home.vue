@@ -28,17 +28,18 @@
       <v-btn color="red accent-3" dark @click="finish" :disabled="status!='Debug'" ><v-icon left dark>mdi-stop</v-icon>Finish</v-btn>
     </div>
     <div class="register-container">
-      <div class="register-block" v-for="(reg, index) in regArray">
-        <v-text-field
+        <div style="width:100% !important;" v-for="(reg, index) in regArray">
+          <v-text-field
+            :key="index"
             :label="regName[index]"
             outlined
             :disabled="status!='Debug'"
             dense
-            style="width:100%;"
+            style="width:90% !important;"
             v-model="regArray[index]"
             @change="regChange(index)"
           ></v-text-field>
-      </div>
+        </div>
     </div>
     
     <div class="editor-container">
@@ -437,12 +438,7 @@ ret
   margin: 0px 0px 0px 0px;
   display: flex;
   flex-direction: row;
-  .register-block {
-    margin: 0px 10px;
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-  }
+  justify-content: space-between;
   input {
     width: 30px;
   }
