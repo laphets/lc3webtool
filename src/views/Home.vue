@@ -128,7 +128,7 @@ ret
         // console.log("remove", lineNumber);
         this.breakPoints[lineNumber] = false;
         this.decorations = this.decorations.filter((item) => {
-          return item.lineNumber != lineNumber;
+          return item.type != "breakpoint" || (item.type == "breakpoint" && item.lineNumber != lineNumber);
         });
         this.inputPromiseResolve(`break clear #${this.debugMap[lineNumber]}`)
       } else {
