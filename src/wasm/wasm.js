@@ -27,6 +27,15 @@ export function toUTF8StrArray(str) {
     return utf8;
 }
 
+export function ptr2str(Module, ptr) {
+    const stringLen = Module.cwrap("stringLen", "number", ["number"]);
+    const length = stringLen(ptr);
+    const strArray = new Int8Array(Module.HEAP8.buffer, ptr, length);
+    const res = uint8arrayToString(strArray).replace(/[^\x20-\x7E]/g, '').trim().split(";d").slice(-1)[0];
+    // console.log(strArray, res)
+    return res;
+}
+
 export function runlc3as(Module, input_asm) {
     const FS = Module.FS;
     const lc3as = Module.cwrap("main_lc3as", "number", ["number"]);

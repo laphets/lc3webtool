@@ -22,10 +22,10 @@
     </pre> -->
     <div class="control-container">
       <v-btn  color="deep-purple accent-4" :dark="true" @click="compile" :loading="status=='Compile'"><v-icon left light >mdi-view-carousel</v-icon> Compile</v-btn>
-      <v-btn color="red accent-3" dark @click="action('continue')" :disabled="status!='Debug'"><v-icon left dark>mdi-play</v-icon>Continue</v-btn>
       <v-btn color="blue-grey darken-2" dark @click="action('next')" :disabled="status!='Debug'"><v-icon left dark>mdi-redo</v-icon>Next</v-btn>
       <v-btn color="blue-grey darken-2" dark @click="action('step')" :disabled="status!='Debug'"><v-icon left dark>mdi-redo</v-icon>Step</v-btn>
-      <v-btn color="deep-orange" dark @click="finish" :disabled="status!='Debug'" ><v-icon left dark>mdi-stop</v-icon>Finish</v-btn>
+      <v-btn  color="deep-orange" dark @click="action('continue')" :disabled="status!='Debug'"><v-icon left dark>mdi-play</v-icon>Continue</v-btn>
+      <v-btn color="red accent-3" dark @click="finish" :disabled="status!='Debug'" ><v-icon left dark>mdi-stop</v-icon>Finish</v-btn>
     </div>
     <div class="register-container">
       <div class="register-block" v-for="(reg, index) in regArray">
@@ -34,8 +34,9 @@
             outlined
             :disabled="status!='Debug'"
             dense
-            style="min-width:100px;"
-            :value="num2hex(reg)"
+            style="width:100%;"
+            v-model="regArray[index]"
+            @change="regChange(index)"
           ></v-text-field>
       </div>
     </div>
@@ -56,13 +57,43 @@
   </div>
     </v-main>
 
+    <v-snackbar
+      v-model="snackbar.show"
+      :color="snackbar.color"
+      :timeout="2000"
+      :right="true"
+      :top="true"
+    >
+      {{ snackbar.text }}
+
+      <!-- <template v-slot:action="{ attrs }">
+        <v-btn
+          color="pink"
+          text
+          v-bind="attrs"
+          @click="snackbar = false"
+        >
+          Close
+        </v-btn>
+      </template> -->
+    </v-snackbar>
+
     <v-footer
       :color="statusColor[status]"
       app
     >
-      <span class="white--text">
-        {{status}} {{statusMsg}}
-      </span>
+      <div class="white--text footspan">
+        <div>
+          <b>{{status}}</b>
+        </div>
+        <div>
+          <b>
+            {{statusMsg}}
+          </b>
+          
+        </div>
+          
+      </div>
     </v-footer>
   </v-app>
 
@@ -94,6 +125,11 @@ export default {
       decorations: [],
       decorationStr: [],
       inputPromiseResolve: null,
+      snackbar: {
+        show: false,
+        color: "success",
+        text: "sb"
+      },
       debugMap: {},
       regArray: [0, 0, 0, 0, 0, 0, 0,0 ,0 ,0, 0],
       breakPoints: {},  // line -> breakpoint
@@ -107,7 +143,8 @@ export default {
         Compile: "purple darken-2",
         Error: "red darken-1"
       },
-      code: `.ORIG x3000
+      code: ``,
+      initCode: `.ORIG x3000
 AND R1,R1,#0
 ADD R1,R1,#12
 
@@ -129,6 +166,10 @@ ret
   },
   created() {
     console.log(wasm)
+    this.code = window.localStorage.getItem("code") || this.initCode;
+    setInterval(() => {
+      window.localStorage.setItem("code", this.code);
+    }, 3000)
     global.getInput = async(buffer) => {
       // console.log(buffer);
       this.inputPromise = new Promise((resolve, reject) => {
@@ -147,7 +188,8 @@ ret
     global.setRegisters = (lc3Register) => {
       console.log(lc3Register)
       const regArray = new Int32Array(this.lc3simModule.HEAP32.buffer, lc3Register, 11);
-      this.regArray = Array.from(regArray);
+      this.regArray = Array.from(regArray).map(item => this.num2hex(item));
+      
       console.log(this.regArray)
     }
     global.setDebugInfo = (lc3Debug) => {
@@ -161,8 +203,20 @@ ret
       }
       console.log(this.debugMap)
     }
-
-    
+    global.setLineInfo = (label, op, oprands) => {
+      const labelStr = wasm.ptr2str(this.lc3simModule, label)
+      const opStr = wasm.ptr2str(this.lc3simModule, op)
+      const oprandsStr = wasm.ptr2str(this.lc3simModule, oprands)
+      this.statusMsg = `${opStr} ${oprandsStr}`;
+    }
+    global.reportSucc = (info) => {
+      const infoStr = wasm.ptr2str(this.lc3simModule, info);
+      this.showSucc(infoStr);
+    }
+    global.reportErr = (info) => {
+      const infoStr = wasm.ptr2str(this.lc3simModule, info);
+      this.showErr(infoStr);
+    }
   },
   mounted() {
     this.editor = this.$refs.editor.getEditor();
@@ -201,6 +255,20 @@ ret
     })
   },
   methods: {
+    showSucc(info) {
+      this.snackbar.show = true;
+      this.snackbar.text = info;
+      this.snackbar.color = "success";
+    }, 
+    showErr(info) {
+      this.snackbar.show = true;
+      this.snackbar.text = info;
+      this.snackbar.color = "error";
+    },
+    regChange(idx) {
+      console.log(`register ${this.regName[idx]} x${this.regArray[idx]}`)
+      this.inputPromiseResolve(`register ${this.regName[idx]} x${this.regArray[idx]}`)
+    },
     updateDecoration() {
       // console.log(this.decorations)
       this.decorationStr = this.editor.deltaDecorations(this.decorationStr, this.decorations);
@@ -305,6 +373,7 @@ ret
         // alert(`lc3as compile error ${lc3aserror}`)
         this.status = "Error"
         this.statusMsg = lc3aserror;
+        this.showErr(`${lc3aserror}`);
         return;
       }
       
@@ -339,7 +408,7 @@ ret
   flex-direction: row;
 .editor {
   width: 800px;
-  height: calc(100vh - 260px);
+  height: calc(100vh - 270px);
 }
 .output {
   
@@ -347,7 +416,7 @@ ret
   
   margin-left: 20px;
   .text {
-    height: calc(100vh - 360px);
+    height: calc(100vh - 370px);
     overflow: scroll;
   }
 }
@@ -372,10 +441,18 @@ ret
     margin: 0px 10px;
     display: flex;
     flex-direction: row;
+    justify-content: space-between;
   }
   input {
     width: 30px;
   }
+}
+
+.footspan {
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
 }
 
 
