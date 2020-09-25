@@ -1,4 +1,6 @@
-# monaco
+# LC3 Webtool
+
+Running LC3 on your browser based on WebAssembly.
 
 ## Project setup
 ```
@@ -14,6 +16,3 @@ npm run serve
 ```
 npm run build
 ```
-
-### Customize configuration
-See [Configuration Reference](https://cli.vuejs.org/config/).
