@@ -1,7 +1,8 @@
 const MonacoEditorPlugin = require('monaco-editor-webpack-plugin')
 
 module.exports = {
-  publicPath: '/wenqing4/lc3web-dist/',
+  outputDir: 'docs',
+  publicPath: '/wenqing4/lc3web/',
   configureWebpack: {
       plugins: [
           new MonacoEditorPlugin({
