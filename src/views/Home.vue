@@ -64,7 +64,7 @@
     <v-snackbar
       v-model="snackbar.show"
       :color="snackbar.color"
-      :timeout="2000"
+      :timeout="snackbar.timeout"
       :right="true"
       :top="true"
     >
@@ -132,7 +132,8 @@ export default {
       snackbar: {
         show: false,
         color: "success",
-        text: "sb"
+        text: "sb",
+        timeout: 2000
       },
       debugMap: {},
       regArray: [0, 0, 0, 0, 0, 0, 0,0 ,0 ,0, 0],
@@ -221,6 +222,10 @@ ret
       const infoStr = wasm.ptr2str(this.lc3simModule, info);
       this.showErr(infoStr);
     }
+    global.reportWarn = (info) => {
+      const infoStr = wasm.ptr2str(this.lc3simModule, info);
+      this.showWarn(infoStr);
+    }
   },
   mounted() {
     this.editor = this.$refs.editor.getEditor();
@@ -263,11 +268,19 @@ ret
       this.snackbar.show = true;
       this.snackbar.text = info;
       this.snackbar.color = "success";
+      this.snackbar.timeout = 2000;
     }, 
     showErr(info) {
       this.snackbar.show = true;
       this.snackbar.text = info;
       this.snackbar.color = "error";
+      this.snackbar.timeout = 3000;
+    },
+    showWarn(info) {
+      this.snackbar.show = true;
+      this.snackbar.text = info;
+      this.snackbar.color = "warning";
+      this.snackbar.timeout = 3000;
     },
     regChange(idx) {
       console.log(`register ${this.regName[idx]} x${this.regArray[idx]}`)
