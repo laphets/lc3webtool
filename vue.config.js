@@ -1,13 +1,14 @@
 const MonacoEditorPlugin = require('monaco-editor-webpack-plugin')
 
 module.exports = {
-    configureWebpack: {
-        plugins: [
-            new MonacoEditorPlugin({
-                languages: [],
-                features: []
-            })
-        ]
+  publicPath: '/wenqing4/lc3web-dist/',
+  configureWebpack: {
+      plugins: [
+          new MonacoEditorPlugin({
+              languages: [],
+              features: []
+          })
+      ]
   },
   transpileDependencies: [
     "vuetify"

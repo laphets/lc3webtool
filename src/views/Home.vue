@@ -44,7 +44,7 @@
     
     <div class="editor-container">
       <MonacoEditor class="editor" ref="editor" v-model="code" :options="options" />
-      <v-card class="output" >
+      <v-card :loading="status=='Compile'" class="output" >
         <v-card-title>
           LC3 Output
         </v-card-title>
