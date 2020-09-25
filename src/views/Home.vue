@@ -210,9 +210,10 @@ ret
     }
     global.setLineInfo = (label, op, oprands) => {
       const labelStr = wasm.ptr2str(this.lc3simModule, label)
+      const labelArr = labelStr.split(" ");
       const opStr = wasm.ptr2str(this.lc3simModule, op)
-      const oprandsStr = wasm.ptr2str(this.lc3simModule, oprands)
-      this.statusMsg = `${opStr} ${oprandsStr}`;
+      const oprandsStr = wasm.ptr2str(this.lc3simModule, oprands).substring(1)
+      this.statusMsg = `${labelArr.length == 3 ? labelArr[0] + " :" : ''} ${opStr} ${oprandsStr}`;
     }
     global.reportSucc = (info) => {
       const infoStr = wasm.ptr2str(this.lc3simModule, info);

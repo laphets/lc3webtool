@@ -31,8 +31,8 @@ export function ptr2str(Module, ptr) {
     const stringLen = Module.cwrap("stringLen", "number", ["number"]);
     const length = stringLen(ptr);
     const strArray = new Int8Array(Module.HEAP8.buffer, ptr, length);
-    const res = uint8arrayToString(strArray).replace(/[^\x20-\x7E]/g, '').trim().split(";d").slice(-1)[0];
-    // console.log(strArray, res)
+    const res = uint8arrayToString(strArray).trim();
+    // console.log(res)
     return res;
 }
 
