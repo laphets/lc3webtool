@@ -5,10 +5,56 @@
       color="indigo"
       dark
     >
-    <v-app-bar-nav-icon />
+    <v-app-bar-nav-icon @click.stop="drawer = !drawer" />
     <v-toolbar-title>LC3 Webtool @ ECE220</v-toolbar-title>
+    <v-spacer></v-spacer>
+      <v-btn icon large>
+        <v-icon>mdi-apps</v-icon>
+      </v-btn>
     </v-app-bar>
 
+  <v-navigation-drawer
+      v-model="drawer"
+      app
+      class="indigo"
+      dark
+    >
+    <v-list-item>
+        <v-list-item-content>
+          <v-list-item-title class="title">
+            File System
+          </v-list-item-title>
+          <v-list-item-subtitle>
+            LC3 file list
+          </v-list-item-subtitle>
+        </v-list-item-content>
+      </v-list-item>
+
+      <v-divider></v-divider>
+
+      <v-list shaped >
+        <v-list-item-group v-model="currentFile">
+        <v-list-item v-for="(file, index) in fileList" @click="currentFile = index" :inactive="false" :key="index" link>
+          <v-list-item-action>
+            <v-icon>mdi-file</v-icon>
+          </v-list-item-action>
+          <v-list-item-content>
+            <v-list-item-title>{{file.name}}</v-list-item-title>
+          </v-list-item-content>
+        </v-list-item>
+        </v-list-item-group>
+
+      </v-list>
+
+      <!-- <template v-slot:append>
+        <div class="pa-2">
+          <v-btn color="deep-orange " block>New File</v-btn>
+        </div>
+      </template> -->
+
+    </v-navigation-drawer>
+
+      
     <v-main>
       <div class="home">
 
@@ -21,12 +67,35 @@
       Just click "Compile" again if you want to rerun your code.
     </pre> -->
     <div class="control-container">
-      <v-btn  color="deep-purple accent-4" :dark="true" @click="compile" :loading="status=='Compile'"><v-icon left light >mdi-view-carousel</v-icon> Compile</v-btn>
+      <v-btn  color="deep-purple accent-4" :dark="true" @click="compile" :loading="status=='Compile'"><v-icon left light >mdi-inbox</v-icon> Compile</v-btn>
+      <!-- <v-select
+            v-model="value"
+            :items="items"
+            filled
+            chips
+            label="Chips"
+            multiple
+          ></v-select> -->
       <v-btn color="blue-grey darken-2" dark @click="action('next')" :disabled="status!='Debug'"><v-icon left dark>mdi-redo</v-icon>Next</v-btn>
       <v-btn color="blue-grey darken-2" dark @click="action('step')" :disabled="status!='Debug'"><v-icon left dark>mdi-redo</v-icon>Step</v-btn>
       <v-btn  color="deep-orange" dark @click="action('continue')" :disabled="status!='Debug'"><v-icon left dark>mdi-play</v-icon>Continue</v-btn>
       <v-btn color="red accent-3" dark @click="finish" :disabled="status!='Debug'" ><v-icon left dark>mdi-stop</v-icon>Finish</v-btn>
+      <v-btn color="red accent-3" dark @click="finish" :disabled="status!='Debug'" ><v-icon left dark>mdi-view-carousel</v-icon>Memory Dump</v-btn>
+      <!-- <v-col class="d-flex" cols="12" sm="6"> -->
+        <div class="select">
+          <v-select
+          dense
+          :items="filenameList"
+          v-model="fileList[currentFile].preloadList"
+          label="Preload File List"
+          outlined
+          multiple
+        ></v-select>
+        </div>
+        
+      <!-- </v-col> -->
     </div>
+     
     <div class="register-container">
         <div style="width:100% !important;" v-for="(reg, index) in regArray">
           <v-text-field
@@ -43,7 +112,7 @@
     </div>
     
     <div class="editor-container">
-      <MonacoEditor class="editor" ref="editor" v-model="code" :options="options" />
+      <MonacoEditor class="editor" :theme="theme" :language="language" ref="editor" v-model="fileList[currentFile].code" :options="options" />
       <v-card :loading="status=='Compile'" class="output" >
         <v-card-title>
           LC3 Output
@@ -88,7 +157,7 @@
     >
       <div class="white--text footspan">
         <div>
-          <b>{{status}}</b>
+          <b>{{status}} {{fileList[currentFile].name}}</b>
         </div>
         <div>
           <b>
@@ -108,7 +177,8 @@
 <script>
 // @ is an alias to /src
 import MonacoEditor from 'vue-monaco'
-import * as wasm from '@/wasm/wasm'
+import * as wasm from '@/util/wasm'
+import * as lc3 from '@/util/lc3'
 
 export default {
   name: 'Home',
@@ -117,6 +187,7 @@ export default {
   },
   data() {
     return {
+      drawer: false,
       status: "Ready",
       statusMsg: "",
       editor: null,
@@ -126,7 +197,12 @@ export default {
       lc3simoutput: "",
       nextInput: "",
       lineNum: 0,
+      preloadList: [],
       decorations: [],
+      fileList: [],
+      theme: "",
+      language: "",
+      currentFile: 0,
       decorationStr: [],
       inputPromiseResolve: null,
       snackbar: {
@@ -136,7 +212,7 @@ export default {
         timeout: 2000
       },
       debugMap: {},
-      regArray: [0, 0, 0, 0, 0, 0, 0,0 ,0 ,0, 0],
+      regArray: [...Array(11)].map(item => this.num2hex(0)),
       breakPoints: {},  // line -> breakpoint
       regName: ["R0", "R1", "R2", "R3", "R4", "R5", "R6", "R7", "PC", "IR", "PSR"],
       options: {
@@ -149,31 +225,56 @@ export default {
         Error: "red darken-1"
       },
       code: ``,
-      initCode: `.ORIG x3000
-AND R1,R1,#0
-ADD R1,R1,#12
+      initFile: [{
+          name: 'main.asm',
+          code: "; comment here",
+          sym: null,
+          obj: null,
+          lc3output: "",
+          lc3error: "",
+          lc3asResult: null,
+          preloadList: []
 
-JSR SUBROUTINE
-
-AND R3,R3,#0
-
-HALT
-
-
-SUBROUTINE
-AND R2,R2,#0
-ADD R2,R2,#1
-ret
-
-
-.END`
+        },
+        {
+          name: 'file1.asm',
+          code: "",
+          sym: null,
+          obj: null,
+          lc3output: "",
+          lc3error: "",
+          lc3asResult: null,
+          preloadList: []
+        },
+        {
+          name: 'file2.asm',
+          code: "",
+          sym: null,
+          obj: null,
+          lc3output: "",
+          lc3error: "",
+          lc3asResult: null,
+          preloadList: []
+        },
+      ]
+    }
+  },
+  computed: {
+    filenameList: function() {
+      return this.fileList.map(item => item.name).filter(item => item != this.fileList[this.currentFile].name)
     }
   },
   created() {
     console.log(wasm)
-    this.code = window.localStorage.getItem("code") || this.initCode;
+    this.fileList = this.getFileStore() || this.initFile;
     setInterval(() => {
-      window.localStorage.setItem("code", this.code);
+      window.localStorage.setItem("code", JSON.stringify(this.fileList.map(item => {
+        return {
+          name: item.name,
+          code: item.code,
+          preloadList: item.preloadList
+        }
+      })));
     }, 3000)
     global.getInput = async(buffer) => {
       // console.log(buffer);
@@ -230,6 +331,9 @@ ret
   },
   mounted() {
     this.editor = this.$refs.editor.getEditor();
+    lc3.init(this.editor);
+    // this.theme = "myCoolTheme";
+    // this.language = "mySpecialLanguage";
     global.editor = this.editor;
     this.decorations = [];
     this.editor.onMouseDown((event) => {
@@ -265,6 +369,23 @@ ret
     })
   },
   methods: {
+    getFileStore() {
+      const file = window.localStorage.getItem("code");
+      if(file) {
+        return JSON.parse(file).map((item) => {
+          return {
+            ...item,
+            sym: null,
+            obj: null,
+            lc3output: "",
+            lc3error: "",
+            lc3asResult: null
+          }
+        });
+      } else {
+        return null;
+      }
+    },
     showSucc(info) {
       this.snackbar.show = true;
       this.snackbar.text = info;
@@ -301,7 +422,7 @@ ret
 
     },
     num2hex(num) {
-      return num.toString(16);
+      return num.toString(16).padStart(4, '0').toUpperCase();
     },
     switchLine() {
       if (this.lineNum != 0) {
@@ -339,72 +460,91 @@ ret
 
     },
     updateScroll() {
-      console.log(this.lc3simoutput)
       this.$nextTick(() => {
         const container = this.$el.querySelector("#output");
         container.scrollTop = container.scrollHeight;
       });
     },
+    async lc3asFile(file) {
+      file.lc3output = "";
+      file.lc3error = "";
+      const lc3asModule = await createLC3asModule({
+        print: (text) => { 
+          file.lc3output += (text + "\n");
+        },
+        printErr: (text) => { file.lc3error += text + "\n"; file.lc3output += text + "\n";}
+      });
+      file.lc3asResult = wasm.runlc3as(lc3asModule, file.code);
+      
+    },
+    async initPreloadFile() {
+      
+    },
+    getRealName(name) {
+      return name.split(".")[0];
+    },
     async compile() {
-      console.log("compile")
+      
       this.status = "Compile";
       this.statusMsg = "";
       this.clearBreakpoint();
       this.lc3simoutput = "";
       this.editor.revealLineInCenter(1);
-      let lc3aserror = "";
-      this.lc3asModule = await createLC3asModule({
-        postRun: [function () {
-            console.log(`Loaded lc3asModule Module OK`);
-        }],
-        preRun: [],
-        print: (text) => { 
-          this.lc3simoutput += (text + "\n");
-          this.updateScroll();
+      // we should get our depend list first
+      const curFile = this.fileList[this.currentFile];
+      console.log("compile", curFile.preloadList)
+      const totalFile = [curFile, ...this.fileList.filter(item => curFile.preloadList.includes(item.name))];
+      const totalFileName = totalFile.map(item => item.name);
+      console.log("totalFile", totalFile)
+      console.log("totalFileName", totalFileName)
 
-          // this.$nextTick(() => {
-          //     this.lc3simoutput += (text + "\n");
-          //     console.log('re-render start')
-          //     this.$nextTick(() => {
-          //         console.log('re-render end')
-          //     })
-          // })
-          
-          // outputKey++;
-          // this.$forceUpdate();
-          // console.log(this.lc3simoutput);
-        },
-        printErr: (text) => { lc3aserror += text + "\n"; this.lc3simoutput += text + "\n"; this.updateScroll();}
-      });
+      for(let i = 0; i < this.fileList.length; i++) {
+        const file = this.fileList[i];
+        if(!totalFileName.includes(file.name))
+          continue;
+        await this.lc3asFile(file);
+        if(file.lc3asResult.ret != 0) {
+          this.status = "Error"
+          this.statusMsg = file.lc3error;
+          this.currentFile = i;
+          this.lc3simoutput = file.lc3output;
+          this.showErr(`${file.lc3error}`);
+          return;
+        }
+      }
+
+
+      // Init lc3sim first
       this.lc3simModule = await createLC3simModule({
-        postRun: [function () {
-            console.log(`Loaded lc3simModule Module OK`);
-        }],
-        preRun: [],
         print: (text) => { this.lc3simoutput += text + "\n"; this.updateScroll(); },
         printErr: (text) => { this.lc3simoutput += text + "\n"; this.updateScroll(); }
       });
-
-      
-      const lc3asResult = wasm.runlc3as(this.lc3asModule, this.code);
-      console.log(wasm.uint8arrayToString(lc3asResult.debug))
-      if(lc3asResult.ret != 0) {
-        // alert(`lc3as compile error ${lc3aserror}`)
-        this.status = "Error"
-        this.statusMsg = lc3aserror;
-        this.showErr(`${lc3aserror}`);
-        return;
+      const FS = this.lc3simModule.FS;
+      for(let i = 0; i < this.fileList.length; i++) {
+        const file = this.fileList[i];
+        if(!totalFileName.includes(file.name))
+          continue;
+        FS.writeFile(`${this.getRealName(file.name)}.sym`, file.lc3asResult.sym);
+        FS.writeFile(`${this.getRealName(file.name)}.obj`, file.lc3asResult.obj);
+        if(file.name == curFile.name)
+          FS.writeFile(`${this.getRealName(file.name)}.debug`, file.lc3asResult.debug);
       }
-      
-      this.$forceUpdate();
 
-      this.$nextTick(() => {
-        this.$nextTick(() => {
-          const lc3simResult = wasm.runlc3sim(this.lc3simModule, lc3asResult);
-          console.log(lc3simResult)
+      const mainFile = this.fileList[this.currentFile];
+      this.lc3simoutput = mainFile.lc3output;
+      const targetFile = [mainFile, ...this.fileList.filter(item => totalFileName.includes(item.name) && item.name !=  mainFile.name)].reverse()
+      const lc3simResult = wasm.runlc3sim(this.lc3simModule, targetFile.map(item => `${this.getRealName(item.name)}.obj` ));
+      console.log(lc3simResult)
+      
+      
+      // this.$forceUpdate();
+
+      // this.$nextTick(() => {
+      //   this.$nextTick(() => {
           
-        })
-      })
+          
+      //   })
+      // })
       
     }
   }
@@ -413,9 +553,16 @@ ret
 </script>
 <style lang="less">
 .control-container {
-  margin: 0px 0px 20px 0px;
+  margin: 0px 0px -10px 0px;
+  display: flex;
+  flex-direction: row;
+  justify-content: left;
+  // align-items: center;
   button {
     margin: 0px 5px;
+  }
+  .select {
+    margin: -3px 5px 0px 10px;
   }
 }
 .home {
