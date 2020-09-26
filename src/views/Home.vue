@@ -374,6 +374,11 @@ export default {
       this.lineNum = lineNum;
       this.switchLine();
     }
+    global.reportDDR = (charCode) => {
+      // console.log("charCode", )
+      this.lc3simoutput += String.fromCharCode(charCode);
+      this.updateScroll();
+    }
     global.setRegisters = (lc3Register) => {
       console.log(lc3Register)
       const regArray = new Int32Array(this.lc3simModule.HEAP32.buffer, lc3Register, 11);
