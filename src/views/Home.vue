@@ -269,6 +269,8 @@ export default {
       statusMsg: "",
       editor: null,
       outputKey: 0,
+      dumped: false,
+      firsthalt: true,
       lc3asModule: null,
       lc3simModule: null,
       lc3simoutput: "",
@@ -376,6 +378,13 @@ export default {
       console.log(lc3Register)
       const regArray = new Int32Array(this.lc3simModule.HEAP32.buffer, lc3Register, 11);
       this.regArray = Array.from(regArray).map(item => this.num2hex(item));
+      if(this.regArray[8] == "x0494") {
+        if(this.firsthalt) {
+          this.firsthalt = false;
+          return;
+        }
+        this.showWarn("halting the LC-3")
+      }
       // console.log(this.regArray)
     }
     global.setDebugInfo = (lc3Debug) => {
@@ -479,14 +488,19 @@ export default {
       this.options.page = Math.floor(startAddr/this.options.itemsPerPage)+1;
     },
     memorydump() {
+
+      // this.searchError = false;
+      this.dialog = true;
+
+      if(this.dumped)
+        return;
+      this.dumped = true;
+
       const startAddr = parseInt(Number("0x" + this.regArray[8].replace(/^\x|X+/g, '')), 10);
       console.log(this.regArray[8], startAddr)
       if(Number.isNaN(startAddr) || startAddr >= 35536) {
         return;
       }
-      // this.searchError = false;
-      this.dialog = true;
-
       this.$nextTick(() => {
         this.options.page = Math.floor(startAddr/this.options.itemsPerPage)+1;
       });
@@ -514,7 +528,7 @@ export default {
         return {
           address: this.num2hex(startAddr+idx),
           label: labelArr.length == 3 ? labelArr[0] : "",
-          value: labelArr.slice(-2).join(" "),
+          value: labelArr.slice(-1).join(" "),
           instruction: `${data.op} ${data.operands}`
         }
       })
@@ -596,6 +610,7 @@ export default {
           options: {
               isWholeLine: true,
               className: 'myContentClass',
+              inlineClassName: 'myInlineDecoration'
           }
         })
         this.updateDecoration();
@@ -643,7 +658,8 @@ export default {
       return name.split(".")[0];
     },
     async compile() {
-      
+      this.firsthalt = true;
+      this.dumped = false;
       this.status = "Compile";
       this.statusMsg = "";
       this.clearBreakpoint();
@@ -756,7 +772,14 @@ export default {
   height: 14px !important;
 }
 .myContentClass {
-	background: lightblue;
+	background: rgb(235,50,35);
+	// background: rgb(8, 193, 255);
+}
+.myInlineDecoration {
+	color: white !important;
+	// cursor: pointer;
+	font-weight: bold;
+	// font-style: oblique;
 }
 
 .register-container {
