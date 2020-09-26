@@ -59,6 +59,25 @@ export function runlc3as(Module, input_asm) {
     }
 }
 
+export function disasOne(Module, addr) {
+    const disassemble_one = Module.cwrap("disassemble_one_export", "number", ["number", "number", "number", "number"]);
+    const label = Module._malloc(100);
+    const op = Module._malloc(100);
+    const operands = Module._malloc(100);
+    const inst = disassemble_one(addr, label, op, operands); // call the WASM function
+    const result = {
+        label: ptr2str(Module, label),
+        op: ptr2str(Module, op),
+        operands: ptr2str(Module, operands).split(" "),
+        inst
+    }
+    
+    Module._free(label);
+    Module._free(op);
+    Module._free(operands);
+    return result;
+}
+
 export function runlc3sim(Module, fileName) {
     // const FS = Module.FS;
     const lc3sim = Module.cwrap("main_lc3sim", "number", ["number"]);

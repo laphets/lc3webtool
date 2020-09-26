@@ -79,8 +79,8 @@
       <v-btn color="blue-grey darken-2" dark @click="action('next')" :disabled="status!='Debug'"><v-icon left dark>mdi-redo</v-icon>Next</v-btn>
       <v-btn color="blue-grey darken-2" dark @click="action('step')" :disabled="status!='Debug'"><v-icon left dark>mdi-redo</v-icon>Step</v-btn>
       <v-btn  color="deep-orange" dark @click="action('continue')" :disabled="status!='Debug'"><v-icon left dark>mdi-play</v-icon>Continue</v-btn>
-      <v-btn color="red accent-3" dark @click="finish" :disabled="status!='Debug'" ><v-icon left dark>mdi-stop</v-icon>Finish</v-btn>
-      <v-btn color="red accent-3" dark @click="finish" :disabled="status!='Debug'" ><v-icon left dark>mdi-view-carousel</v-icon>Memory Dump</v-btn>
+      <v-btn color="red" dark @click="finish" :disabled="status!='Debug'" ><v-icon left dark>mdi-stop</v-icon>Finish</v-btn>
+      <v-btn color="indigo accent-4" dark @click="memorydump" :disabled="status!='Debug'" ><v-icon left dark>mdi-view-carousel</v-icon>Memory Dump</v-btn>
       <!-- <v-col class="d-flex" cols="12" sm="6"> -->
         <div class="select">
           <v-select
@@ -151,6 +151,68 @@
       </template> -->
     </v-snackbar>
 
+      <v-dialog v-model="dialog" fullscreen hide-overlay transition="dialog-bottom-transition">
+      <v-card>
+        <v-toolbar dark color="primary">
+          <v-btn icon dark @click="dialog = false">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+          <v-toolbar-title>Memory Dump</v-toolbar-title>
+          <v-spacer></v-spacer>
+          <v-toolbar-items>
+            <v-text-field
+            style="align-items: center;"
+            v-model="addrSearch"
+            clearable
+            flat
+            solo-inverted
+            hide-details
+            :error="searchError"
+            prepend-inner-icon="mdi-view-carousel"
+            label="Jump to Address"
+            @keydown.enter="searchMemory"
+          ></v-text-field>
+          </v-toolbar-items>
+          <!-- <v-toolbar-items>
+            <v-btn dark text @click="dialog = false">Go to PC</v-btn>
+          </v-toolbar-items> -->
+        </v-toolbar>
+        <v-list three-line subheader>
+          <v-subheader>Memeory Table</v-subheader>
+          <v-list-item>
+              <v-data-table
+    :headers="headers"
+    :items="memoryData"
+    :options.sync="options"
+    :items-per-page="15"
+    :server-items-length="65536"
+    :search="addrSearch"
+    dense
+  >
+  <template v-slot:item.label="{ item }">
+      <v-chip v-if="item.label" small :color="'success'" dark>{{ item.label }}</v-chip>
+    </template>
+  </v-data-table>
+          </v-list-item>
+          <!-- <v-list-item>
+            <v-list-item-content>
+              <v-list-item-title>Content filtering</v-list-item-title>
+              <v-list-item-subtitle>Set the content filtering level to restrict apps that can be downloaded</v-list-item-subtitle>
+            </v-list-item-content>
+          </v-list-item>
+          <v-list-item>
+            <v-list-item-content>
+              <v-list-item-title>Password</v-list-item-title>
+              <v-list-item-subtitle>Require password for purchase or use password to restrict purchase</v-list-item-subtitle>
+            </v-list-item-content>
+          </v-list-item> -->
+        </v-list>
+        <!-- <v-divider></v-divider> -->
+        
+        </v-list>
+      </v-card>
+    </v-dialog>
+
     <v-footer
       :color="statusColor[status]"
       app
@@ -187,6 +249,21 @@ export default {
   },
   data() {
     return {
+      headers: [
+          {
+            text: 'Address(Hex)',
+            align: 'center',
+            sortable: false,
+            value: 'address',
+            width: "100"
+          },
+          { text: 'Label', value: 'label', sortable: false, align: 'center', width: "150" },
+          { text: 'Value(Hex)', value: 'value', sortable: false, align: 'center', width: "140" },
+          { text: 'Instruction', value: 'instruction', sortable: false, width: "240" },
+        ],
+        memoryData: [],
+      addrSearch: "",
+      dialog: false,
       drawer: false,
       status: "Ready",
       statusMsg: "",
@@ -204,6 +281,10 @@ export default {
       language: "",
       currentFile: 0,
       decorationStr: [],
+      searchError: false,
+      options: {
+
+      },
       inputPromiseResolve: null,
       snackbar: {
         show: false,
@@ -295,8 +376,7 @@ export default {
       console.log(lc3Register)
       const regArray = new Int32Array(this.lc3simModule.HEAP32.buffer, lc3Register, 11);
       this.regArray = Array.from(regArray).map(item => this.num2hex(item));
-      
-      console.log(this.regArray)
+      // console.log(this.regArray)
     }
     global.setDebugInfo = (lc3Debug) => {
       this.status = "Debug";
@@ -313,7 +393,7 @@ export default {
       const labelStr = wasm.ptr2str(this.lc3simModule, label)
       const labelArr = labelStr.split(" ");
       const opStr = wasm.ptr2str(this.lc3simModule, op)
-      const oprandsStr = wasm.ptr2str(this.lc3simModule, oprands).substring(1)
+      const oprandsStr = wasm.ptr2str(this.lc3simModule, oprands)
       this.statusMsg = `${labelArr.length == 3 ? labelArr[0] + " :" : ''} ${opStr} ${oprandsStr}`;
     }
     global.reportSucc = (info) => {
@@ -368,7 +448,78 @@ export default {
       this.updateDecoration();
     })
   },
+  watch: {
+      options: {
+        handler () {
+          this.getMemoryDumpData()
+        },
+        deep: true,
+      },
+      // addrSearch: {
+      //   handler () {
+      //     const startAddr = parseInt(Number("0x" + this.addrSearch.replace(/^\x|X+/g, '')), 10);
+      //     if(Number.isNaN(startAddr) == NaN || startAddr >= 35536)
+      //       return;
+      //     this.options.page = Math.floor(startAddr/this.options.itemsPerPage)+1;
+      //     // console.log(this.options.page)
+      //     // this.getMemoryDumpData()
+      //   }
+      // }
+  },
   methods: {
+    searchMemory() {
+      // console.log(this.addrSearch)
+      const startAddr = parseInt(Number("0x" + this.addrSearch.replace(/^\x|X+/g, '')), 10);
+      // console.log(startAddr)
+      if(Number.isNaN(startAddr) || startAddr >= 35536) {
+        this.searchError = true;
+        return;
+      }
+      this.searchError = false;
+      this.options.page = Math.floor(startAddr/this.options.itemsPerPage)+1;
+    },
+    memorydump() {
+      const startAddr = parseInt(Number("0x" + this.regArray[8].replace(/^\x|X+/g, '')), 10);
+      console.log(this.regArray[8], startAddr)
+      if(Number.isNaN(startAddr) || startAddr >= 35536) {
+        return;
+      }
+      // this.searchError = false;
+      this.dialog = true;
+
+      this.$nextTick(() => {
+        this.options.page = Math.floor(startAddr/this.options.itemsPerPage)+1;
+      });
+
+      // setTimeout(() => {
+        
+
+      // }, 1000)
+
+      
+      // this.getMemoryDumpData();
+    },
+    getMemoryDumpData() {
+      // console.log(regArray[8] +i, wasm.disasOne(this.lc3simModule, regArray[8] + i))
+      const { page, itemsPerPage } = this.options;
+      let startAddr = (page-1) * itemsPerPage;
+      if(startAddr >= 35536)
+        return;
+      // console.log(this.options)
+      // console.log(itemsPerPage, page)
+      
+      this.memoryData = [...Array(itemsPerPage)].map((item, idx) => {
+        const data = wasm.disasOne(this.lc3simModule, startAddr+idx);
+        const labelArr = data.label.split(" ");
+        return {
+          address: this.num2hex(startAddr+idx),
+          label: labelArr.length == 3 ? labelArr[0] : "",
+          value: labelArr.slice(-2).join(" "),
+          instruction: `${data.op} ${data.operands}`
+        }
+      })
+      // console.log(this.memoryData)
+    },
     getFileStore() {
       const file = window.localStorage.getItem("code");
       try {
@@ -413,8 +564,8 @@ export default {
       this.snackbar.timeout = 3000;
     },
     regChange(idx) {
-      console.log(`register ${this.regName[idx]} x${this.regArray[idx]}`)
-      this.inputPromiseResolve(`register ${this.regName[idx]} x${this.regArray[idx]}`)
+      console.log(`register ${this.regName[idx]} ${this.regArray[idx]}`)
+      this.inputPromiseResolve(`register ${this.regName[idx]} ${this.regArray[idx]}`)
     },
     updateDecoration() {
       // console.log(this.decorations)
@@ -430,7 +581,7 @@ export default {
 
     },
     num2hex(num) {
-      return num.toString(16).padStart(4, '0').toUpperCase();
+      return "x" + num.toString(16).padStart(4, '0').toUpperCase();
     },
     switchLine() {
       if (this.lineNum != 0) {
