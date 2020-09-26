@@ -371,18 +371,26 @@ export default {
   methods: {
     getFileStore() {
       const file = window.localStorage.getItem("code");
-      if(file) {
-        return JSON.parse(file).map((item) => {
-          return {
-            ...item,
-            sym: null,
-            obj: null,
-            lc3output: "",
-            lc3error: "",
-            lc3asResult: null
-          }
-        });
-      } else {
+      try {
+        if(file) {
+          return JSON.parse(file).map((item) => {
+            return {
+              name: "",
+              code: "",
+              preloadList: [],
+              ...item,
+              sym: null,
+              obj: null,
+              lc3output: "",
+              lc3error: "",
+              lc3asResult: null
+            }
+          });
+        } else {
+          return null;
+        }
+      } catch (err) {
+        console.log(err);
         return null;
       }
     },
