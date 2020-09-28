@@ -87,11 +87,28 @@
           dense
           :items="filenameList"
           v-model="fileList[currentFile].preloadList"
-          label="Preload File List"
+          label="Preload ASM List"
           outlined
           multiple
         ></v-select>
         </div>
+
+        <v-tooltip bottom>
+      <template v-slot:activator="{ on, attrs }">
+        <v-btn
+          color="indigo accent-4"
+          dark
+          :disabled="status!='Ready'"
+          @click="preset"
+          v-bind="attrs"
+          v-on="on"
+        >
+          <v-icon left dark>mdi-view-carousel</v-icon>Init Lab3
+        </v-btn>
+      </template>
+      <span>This action will overwrite current code</span>
+    </v-tooltip>
+
         
       <!-- </v-col> -->
     </div>
@@ -241,6 +258,7 @@
 import MonacoEditor from 'vue-monaco'
 import * as wasm from '@/util/wasm'
 import * as lc3 from '@/util/lc3'
+import * as lab from '@/util/lab'
 
 export default {
   name: 'Home',
@@ -481,6 +499,10 @@ export default {
       // }
   },
   methods: {
+    preset() {
+      console.log(lab.lab3())
+      this.fileList[this.currentFile].code = lab.lab3();
+    },
     searchMemory() {
       // console.log(this.addrSearch)
       const startAddr = parseInt(Number("0x" + this.addrSearch.replace(/^\x|X+/g, '')), 10);
