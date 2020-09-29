@@ -9,10 +9,18 @@ export function init() {
     monaco.languages.setMonarchTokensProvider('mySpecialLanguage', {
         tokenizer: {
             root: [
-                [/\[ld]/, "custom-error"],
-                [/\[notice.*/, "custom-notice"],
-                [/\[info.*/, "custom-info"],
-                [/\ [a-zA-Z 0-9:]+\ /, "custom-date"],
+                [/^\s*(ldr|LDR|ldi|LDI|ld|LD|str|STR|sti|STI|st|ST|lea|LEA|and|AND|add|ADD|not|NOT)/, "operator"],
+                [/\s+(ldr|LDR|ldi|LDI|ld|LD|str|STR|sti|STI|st|ST|lea|LEA|and|AND|add|ADD|not|NOT)(\s|;|$)/, "operator"],
+                [/^\s*(BR|br)[nN]?[zZ]?[pP]?\b/, "control"],
+                [/\s+(BR|br)[nN]?[zZ]?[pP]?(\s|;|$)/, "control"],
+                [/^\s*(jmp|JMP|jsrr|JSRR|jsr|JSR|ret|RET|trap|TRAP|getc|GETC|out|OUT|puts|PUTS|in|IN|putsp|PUTSP|halt|HALT)\b/, "control"],
+                [/\s+(jmp|JMP|jsrr|JSRR|jsr|JSR|ret|RET|trap|TRAP|getc|GETC|out|OUT|puts|PUTS|in|IN|putsp|PUTSP|halt|HALT)(\s|;|$)/, "control"],
+                [/\b[rR][0-7]\b/, "register"],
+                [/[xX][0-9a-fA-F]{1,4}/, "numeric"],
+                [/#\d+/, "numeric"],
+                [/[01]{8}/, "numeric"],
+                [/\.\w*/, "directives"],
+                [/;.*$/, "comment"]
             ]
         }
     });
@@ -22,55 +30,62 @@ export function init() {
         base: 'vs',
         inherit: false,
         rules: [{
-                token: 'custom-info',
-                foreground: '808080'
-            },
-            {
-                token: 'custom-error',
-                foreground: 'ff0000',
-                fontStyle: 'bold'
-            },
-            {
-                token: 'custom-notice',
-                foreground: 'FFA500'
-            },
-            {
-                token: 'custom-date',
-                foreground: '008800'
-            },
+            token: 'operator',
+            foreground: '0000FF'
+        },
+        {
+            token: 'control',
+            foreground: 'FF0000'
+        },
+        {
+            token: 'register',
+            foreground: '004080'
+        },
+        {
+            token: 'numeric',
+            foreground: '098658'
+        },
+        {
+            token: 'directives',
+            foreground: '795E26'
+        },
+        {
+            token: 'comment',
+            foreground: '008000'
+        }
         ]
     });
 
-// Register a completion item provider for the new language
-monaco.languages.registerCompletionItemProvider('mySpecialLanguage', {
-    provideCompletionItems: () => {
-        var suggestions = [{
-            label: 'simpleText',
-            kind: monaco.languages.CompletionItemKind.Text,
-            insertText: 'simpleText'
-        }, {
-            label: 'testing',
-            kind: monaco.languages.CompletionItemKind.Keyword,
-            insertText: 'testing(${1:condition})',
-            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
-        }, {
-            label: 'ifelse',
-            kind: monaco.languages.CompletionItemKind.Snippet,
-            insertText: [
-                'if (${1:condition}) {',
-                '\t$0',
-                '} else {',
-                '\t',
-                '}'
-            ].join('\n'),
-            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-            documentation: 'If-Else Statement'
-        }];
-        return {
-            suggestions: suggestions
-        };
-    }
-});
+    // Register a completion item provider for the new language
+    monaco.languages.registerCompletionItemProvider('mySpecialLanguage', {
+        provideCompletionItems: () => {
+            var suggestions = [{
+                label: 'simpleText',
+                kind: monaco.languages.CompletionItemKind.Text,
+                insertText: 'simpleText'
+            }, {
+                label: 'testing',
+                kind: monaco.languages.CompletionItemKind.Keyword,
+                insertText: 'testing(${1:condition})',
+                insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+            }, {
+                label: 'ifelse',
+                kind: monaco.languages.CompletionItemKind.Snippet,
+                insertText: [
+                    'if (${1:condition}) {',
+                    '\t$0',
+                    '} else {',
+                    '\t',
+                    '}'
+                ].join('\n'),
+                insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                documentation: 'If-Else Statement'
+            }];
+            return {
+                suggestions: suggestions
+            };
+        }
+    });
 
     // monaco.editor.setTheme('myCoolTheme')
     // monaco.editor.setLanguage('mySpecialLanguage')

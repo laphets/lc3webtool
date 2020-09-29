@@ -444,8 +444,8 @@ export default {
   mounted() {
     this.editor = this.$refs.editor.getEditor();
     lc3.init(this.editor);
-    // this.theme = "myCoolTheme";
-    // this.language = "mySpecialLanguage";
+    this.theme = "myCoolTheme";
+    this.language = "mySpecialLanguage";
     global.editor = this.editor;
     this.decorations = [];
     this.editor.onMouseDown((event) => {
