@@ -80,6 +80,25 @@
       <v-btn color="blue-grey darken-2" dark @click="action('step')" :disabled="status!='Debug'"><v-icon left dark>mdi-redo</v-icon>Step</v-btn>
       <v-btn  color="deep-orange" dark @click="action('continue')" :disabled="status!='Debug'"><v-icon left dark>mdi-play</v-icon>Continue</v-btn>
       <v-btn color="red" dark @click="finish" :disabled="status!='Debug'" ><v-icon left dark>mdi-stop</v-icon>Finish</v-btn>
+      <v-menu offset-y open-on-hover>
+      <template v-slot:activator="{ on, attrs }">
+        <v-btn
+          color="success"
+          dark
+          v-bind="attrs"
+          v-on="on"
+          :disabled="status!='Debug'"
+        >
+          Reverse
+        </v-btn>
+      </template>
+      <v-list>
+        <v-list-item @click="action('rstep')"><v-list-item-title>Reverse Step</v-list-item-title></v-list-item>
+        <v-list-item @click="action('rnext')"><v-list-item-title>Reverse Next</v-list-item-title></v-list-item>
+        <v-list-item @click="action('rfinish')"><v-list-item-title>Reverse Finish</v-list-item-title></v-list-item>
+        <v-list-item @click="action('rcontinue')"><v-list-item-title>Reverse Continue</v-list-item-title></v-list-item>
+      </v-list>
+    </v-menu>
       <v-btn color="indigo accent-4" dark @click="memorydump" :disabled="status!='Debug'" ><v-icon left dark>mdi-view-carousel</v-icon>Memory Dump</v-btn>
       <!-- <v-col class="d-flex" cols="12" sm="6"> -->
         <div class="select">
@@ -93,7 +112,7 @@
         ></v-select>
         </div>
 
-        <v-tooltip bottom>
+        <!-- <v-tooltip bottom>
       <template v-slot:activator="{ on, attrs }">
         <v-btn
           color="indigo accent-4"
@@ -107,7 +126,7 @@
         </v-btn>
       </template>
       <span>This action will overwrite current code</span>
-    </v-tooltip>
+    </v-tooltip> -->
 
         
       <!-- </v-col> -->
