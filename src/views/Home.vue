@@ -112,7 +112,7 @@
         ></v-select>
         </div>
 
-        <v-tooltip bottom>
+        <v-tooltip v-if="status=='Ready'" bottom>
       <template v-slot:activator="{ on, attrs }">
         <v-btn
           color="indigo accent-4"
@@ -127,6 +127,8 @@
       </template>
       <span>This action will overwrite current code</span>
     </v-tooltip>
+      <v-btn  color="deep-purple accent-4" :dark="true" @click="printGold" :disabled="status!='Debug'"><v-icon left light >mdi-inbox</v-icon>Lab4 Gold</v-btn>
+
 
         
       <!-- </v-col> -->
@@ -529,6 +531,21 @@ export default {
       element.click();
 
       document.body.removeChild(element);
+    },
+    printGold() {
+      this.lc3simoutput += `*******...
+*********.
+*********.
+**********
+*********.
+*****.**..
+*******...
+*******...
+..*****...
+.*****....
+`;
+
+      this.updateScroll();
     },
     preset() {
       // console.log(lab.lab3())
