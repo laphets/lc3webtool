@@ -112,7 +112,7 @@
         ></v-select>
         </div>
 
-        <!-- <v-tooltip bottom>
+        <v-tooltip bottom>
       <template v-slot:activator="{ on, attrs }">
         <v-btn
           color="indigo accent-4"
@@ -122,11 +122,11 @@
           v-bind="attrs"
           v-on="on"
         >
-          <v-icon left dark>mdi-view-carousel</v-icon>Init Lab3
+          <v-icon left dark>mdi-view-carousel</v-icon>Init Lab4
         </v-btn>
       </template>
       <span>This action will overwrite current code</span>
-    </v-tooltip> -->
+    </v-tooltip>
 
         
       <!-- </v-col> -->
@@ -518,9 +518,25 @@ export default {
       // }
   },
   methods: {
+    download(filename, text) {
+      var element = document.createElement('a');
+      element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+      element.setAttribute('download', filename);
+
+      element.style.display = 'none';
+      document.body.appendChild(element);
+
+      element.click();
+
+      document.body.removeChild(element);
+    },
     preset() {
-      console.log(lab.lab3())
-      this.fileList[this.currentFile].code = lab.lab3();
+      // console.log(lab.lab3())
+      if(this.fileList[this.currentFile].code != "") {
+        this.download(`lc3webtool_backup_${new Date().getTime()}.asm`, this.fileList[this.currentFile].code)
+      }
+      
+      this.fileList[this.currentFile].code = lab.lab4();
     },
     searchMemory() {
       // console.log(this.addrSearch)
