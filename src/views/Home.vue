@@ -533,7 +533,8 @@ export default {
       document.body.removeChild(element);
     },
     printGold() {
-      this.lc3simoutput += `*******...
+      this.lc3simoutput += `
+*******...
 *********.
 *********.
 **********
