@@ -67,7 +67,7 @@
       Just click "Compile" again if you want to rerun your code.
     </pre> -->
     <div class="control-container">
-      <v-btn  color="deep-purple accent-4" :dark="true" @click="compile" :loading="status=='Compile'"><v-icon left light >mdi-inbox</v-icon> Compile</v-btn>
+      <v-btn rounded color="deep-purple accent-4" :dark="true" @click="compile" :loading="status=='Compile'"><v-icon left light >mdi-inbox</v-icon> Assemble</v-btn>
       <!-- <v-select
             v-model="value"
             :items="items"
@@ -78,7 +78,7 @@
           ></v-select> -->
       <v-btn color="blue-grey darken-2" dark @click="action('next')" :disabled="status!='Debug'"><v-icon left dark>mdi-redo</v-icon>Next</v-btn>
       <v-btn color="blue-grey darken-2" dark @click="action('step')" :disabled="status!='Debug'"><v-icon left dark>mdi-redo</v-icon>Step</v-btn>
-      <v-btn  color="deep-orange" dark @click="action('continue')" :disabled="status!='Debug'"><v-icon left dark>mdi-play</v-icon>Continue</v-btn>
+      <v-btn color="deep-orange" dark @click="action('continue')" :disabled="status!='Debug'"><v-icon left dark>mdi-play</v-icon>Continue</v-btn>
       <v-btn color="red" dark @click="finish" :disabled="status!='Debug'" ><v-icon left dark>mdi-stop</v-icon>Finish</v-btn>
       <v-menu offset-y open-on-hover>
       <template v-slot:activator="{ on, attrs }">
@@ -117,17 +117,26 @@
         <v-btn
           color="indigo accent-4"
           dark
+          rounded
+          depressed
           :disabled="status!='Ready'"
           @click="preset"
           v-bind="attrs"
           v-on="on"
         >
-          <v-icon left dark>mdi-view-carousel</v-icon>Init Lab4
+          <v-icon left dark>mdi-view-carousel</v-icon>Import
         </v-btn>
       </template>
       <span>This action will overwrite current code</span>
     </v-tooltip>
-      <v-btn  color="deep-purple accent-4" :dark="true" @click="printGold" :disabled="status!='Debug'"><v-icon left light >mdi-inbox</v-icon>Lab4 Gold</v-btn>
+    <input
+        ref="uploader"
+        class="d-none"
+        type="file"
+        accept="application/JSON"
+        @change="onFileChanged"
+      >
+      <!-- <v-btn  color="deep-purple accent-4" :dark="true" @click="printGold" :disabled="status!='Debug'"><v-icon left light >mdi-inbox</v-icon>Lab4 Gold</v-btn> -->
 
 
         
@@ -388,15 +397,9 @@ export default {
   },
   created() {
     console.log(wasm)
-    this.fileList = this.getFileStore() || this.initFile;
+    this.fileList = this.getFileStore(window.localStorage.getItem("code")) || this.initFile;
     setInterval(() => {
-      window.localStorage.setItem("code", JSON.stringify(this.fileList.map(item => {
-        return {
-          name: item.name,
-          code: item.code,
-          preloadList: item.preloadList
-        }
-      })));
+      window.localStorage.setItem("code", this.dumpJSON());
     }, 3000)
     global.getInput = async(buffer) => {
       // console.log(buffer);
@@ -520,6 +523,34 @@ export default {
       // }
   },
   methods: {
+    dumpJSON() {
+      return JSON.stringify(this.fileList.map(item => {
+        return {
+          name: item.name,
+          code: item.code,
+          preloadList: item.preloadList
+        }
+      }));
+    },
+    readFile(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = function() {
+          resolve(reader.result);
+        };
+        reader.readAsText(file);
+      })
+    },
+    async onFileChanged(e) {
+      const file = e.target.files[0];
+      if(file) {
+        if(this.fileList[this.currentFile].code != "") {
+          this.download(`lc3webtool_checkpoint_${new Date().getTime()}.json`, this.dumpJSON())
+        }
+        const content = await this.readFile(file);
+        this.fileList = this.getFileStore(content);
+      }
+    },
     download(filename, text) {
       var element = document.createElement('a');
       element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
@@ -532,29 +563,10 @@ export default {
 
       document.body.removeChild(element);
     },
-    printGold() {
-      this.lc3simoutput += `
-*******...
-*********.
-*********.
-**********
-*********.
-*****.**..
-*******...
-*******...
-..*****...
-.*****....
-`;
-
-      this.updateScroll();
-    },
     preset() {
       // console.log(lab.lab3())
-      if(this.fileList[this.currentFile].code != "") {
-        this.download(`lc3webtool_backup_${new Date().getTime()}.asm`, this.fileList[this.currentFile].code)
-      }
-      
-      this.fileList[this.currentFile].code = lab.lab4();
+      this.$refs.uploader.click();
+      // this.fileList[this.currentFile].code = lab.lab4();
     },
     searchMemory() {
       // console.log(this.addrSearch)
@@ -614,8 +626,7 @@ export default {
       })
       // console.log(this.memoryData)
     },
-    getFileStore() {
-      const file = window.localStorage.getItem("code");
+    getFileStore(file) {
       try {
         if(file) {
           return JSON.parse(file).map((item) => {
@@ -828,7 +839,7 @@ export default {
   display: flex;
   flex-direction: row;
 .editor {
-  width: 800px;
+  width: 80vw;
   height: calc(100vh - 270px);
 }
 .output {
