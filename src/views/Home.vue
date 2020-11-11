@@ -67,7 +67,9 @@
       Just click "Compile" again if you want to rerun your code.
     </pre> -->
     <div class="control-container">
-      <v-btn rounded color="deep-purple accent-4" :dark="true" @click="compile" :loading="status=='Compile'"><v-icon left light >mdi-inbox</v-icon> Assemble</v-btn>
+      
+      <v-btn v-if="status!='Debug'" rounded color="deep-purple accent-4" :dark="true" @click="compile" :loading="status=='Compile'" ><v-icon left light >mdi-inbox</v-icon> Assemble</v-btn>
+      <v-btn v-if="status=='Debug'" rounded color="pink" :dark="true" @click="terminate"><v-icon left light >mdi-stop</v-icon> Terminate</v-btn>
       <!-- <v-select
             v-model="value"
             :items="items"
@@ -76,13 +78,15 @@
             label="Chips"
             multiple
           ></v-select> -->
-      <v-btn color="blue-grey darken-2" dark @click="action('next')" :disabled="status!='Debug'"><v-icon left dark>mdi-redo</v-icon>Next</v-btn>
-      <v-btn color="blue-grey darken-2" dark @click="action('step')" :disabled="status!='Debug'"><v-icon left dark>mdi-redo</v-icon>Step</v-btn>
-      <v-btn color="deep-orange" dark @click="action('continue')" :disabled="status!='Debug'"><v-icon left dark>mdi-play</v-icon>Continue</v-btn>
-      <v-btn color="red" dark @click="finish" :disabled="status!='Debug'" ><v-icon left dark>mdi-stop</v-icon>Finish</v-btn>
+      <v-btn outlined color="blue-grey darken-2" dark @click="action('next')" :disabled="status!='Debug'"><v-icon left dark>mdi-redo</v-icon>Next</v-btn>
+      <v-btn outlined color="blue-grey darken-2" dark @click="action('step')" :disabled="status!='Debug'"><v-icon left dark>mdi-redo</v-icon>Step</v-btn>
+      <v-btn outlined color="deep-orange" dark @click="action('continue')" :disabled="status!='Debug'"><v-icon left dark>mdi-play</v-icon>Continue</v-btn>
+      <v-btn outlined color="red" dark @click="action('finish')" :disabled="status!='Debug'" ><v-icon left dark>mdi-stop</v-icon>Finish</v-btn>
       <v-menu offset-y open-on-hover>
       <template v-slot:activator="{ on, attrs }">
         <v-btn
+          outlined
+        
           color="success"
           dark
           v-bind="attrs"
@@ -99,7 +103,7 @@
         <v-list-item @click="action('rcontinue')"><v-list-item-title>Reverse Continue</v-list-item-title></v-list-item>
       </v-list>
     </v-menu>
-      <v-btn color="indigo accent-4" dark @click="memorydump" :disabled="status!='Debug'" ><v-icon left dark>mdi-view-carousel</v-icon>Memory Dump</v-btn>
+      <v-btn outlined color="indigo accent-4" dark @click="memorydump" :disabled="status!='Debug'" ><v-icon left dark>mdi-view-carousel</v-icon>Memory Dump</v-btn>
       <!-- <v-col class="d-flex" cols="12" sm="6"> -->
         <div class="select">
           <v-select
@@ -151,7 +155,7 @@
             outlined
             :disabled="status!='Debug'"
             dense
-            style="width:90% !important;"
+            style="width:90% !important;min-height: 20px !important;"
             v-model="regArray[index]"
             @change="regChange(index)"
           ></v-text-field>
@@ -718,11 +722,10 @@ export default {
       console.log(name);
       this.inputPromiseResolve(name)
     },
-    finish() {
+    terminate() {
       this.status = "Ready";
-      this.inputPromiseResolve("finish")
+      // this.inputPromiseResolve("finish")
       this.clearBreakpoint();
-
     },
     updateScroll() {
       this.$nextTick(() => {
