@@ -8,9 +8,31 @@
     <v-app-bar-nav-icon @click.stop="drawer = !drawer" />
     <v-toolbar-title>LC3 Webtool @ ECE220</v-toolbar-title>
     <v-spacer></v-spacer>
-      <v-btn icon large>
+      <!-- <v-btn icon large>
         <v-icon>mdi-apps</v-icon>
-      </v-btn>
+      </v-btn> -->
+      <v-btn
+          text
+          rounded
+          depressed
+          :disabled="status=='Debug'"
+          @click="statusImport"
+          v-bind="attrs"
+          v-on="on"
+        >
+          <v-icon left dark>mdi-upload</v-icon>Import
+        </v-btn>
+        <v-btn
+          text
+          rounded
+          depressed
+          :disabled="status=='Debug'"
+          @click="statusExport"
+          v-bind="attrs"
+          v-on="on"
+        >
+          <v-icon left dark>mdi-download</v-icon>Export
+        </v-btn>
     </v-app-bar>
 
   <v-navigation-drawer
@@ -116,7 +138,7 @@
         ></v-select>
         </div>
 
-        <v-tooltip v-if="status=='Ready'" bottom>
+        <!-- <v-tooltip v-if="status=='Ready'" bottom>
       <template v-slot:activator="{ on, attrs }">
         <v-btn
           color="indigo accent-4"
@@ -132,7 +154,7 @@
         </v-btn>
       </template>
       <span>This action will overwrite current code</span>
-    </v-tooltip>
+    </v-tooltip> -->
     <input
         ref="uploader"
         class="d-none"
@@ -567,10 +589,13 @@ export default {
 
       document.body.removeChild(element);
     },
-    preset() {
+    statusImport() {
       // console.log(lab.lab3())
       this.$refs.uploader.click();
       // this.fileList[this.currentFile].code = lab.lab4();
+    },
+    statusExport() {
+      this.download(`lc3webtool_export_${new Date().getTime()}.json`, this.dumpJSON());
     },
     searchMemory() {
       // console.log(this.addrSearch)
