@@ -17,8 +17,6 @@
           depressed
           :disabled="status=='Debug'"
           @click="statusImport"
-          v-bind="attrs"
-          v-on="on"
         >
           <v-icon left dark>mdi-upload</v-icon>Import
         </v-btn>
@@ -28,8 +26,6 @@
           depressed
           :disabled="status=='Debug'"
           @click="statusExport"
-          v-bind="attrs"
-          v-on="on"
         >
           <v-icon left dark>mdi-download</v-icon>Export
         </v-btn>
