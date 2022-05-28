@@ -6,7 +6,7 @@
       dark
     >
     <v-app-bar-nav-icon @click.stop="drawer = !drawer" />
-    <v-toolbar-title>LC3 Webtool @ ECE220</v-toolbar-title>
+    <v-toolbar-title>LC3 Webtool</v-toolbar-title>
     <v-spacer></v-spacer>
       <!-- <v-btn icon large>
         <v-icon>mdi-apps</v-icon>
